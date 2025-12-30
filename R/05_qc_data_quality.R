@@ -122,6 +122,15 @@ qc_id_checks <- function(df, id_col = "record_id") {
 qc_range_rules <- function(df, rules) {
   stopifnot(is.list(rules))
   
+  empty <- tibble::tibble(
+    row_id = integer(),
+    variable = character(),
+    value = numeric(),
+    is_missing = logical(),
+    is_out_of_range = logical(),
+    rule = character()
+  )
+  
   out_list <- list()
   
   for (r in rules) {
@@ -132,24 +141,27 @@ qc_range_rules <- function(df, rules) {
     maxv <- r$max %||%  Inf
     
     bad <- df %>%
-      transmute(
-        row_id = row_number(),
+      dplyr::transmute(
+        row_id = dplyr::row_number(),
         variable = var,
-        value = .data[[var]]
+        value = suppressWarnings(as.numeric(.data[[var]]))
       ) %>%
-      mutate(
+      dplyr::mutate(
         is_missing = is.na(value),
         is_out_of_range = !is_missing & (value < minv | value > maxv),
         rule = paste0("[", minv, ", ", maxv, "]")
       ) %>%
-      filter(is_out_of_range)
+      dplyr::filter(is_out_of_range)
     
     out_list[[var]] <- bad
   }
   
-  bind_rows(out_list) %>%
-    arrange(variable, row_id)
+  out <- dplyr::bind_rows(out_list)
+  if (nrow(out) == 0) return(empty)
+  
+  out %>% dplyr::arrange(variable, row_id)
 }
+
 
 # ------------------------------------------------------------
 # 4) “Too perfect” / low-variance checks (data entry smell test) :'))

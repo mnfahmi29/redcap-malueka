@@ -22,11 +22,11 @@
 # Each src file has ONE responsibility.
 # If something breaks, you know where to look ._.
 
-source("src/01_import_merge.R")        # REDCap → wide table
-source("src/02_structure_columns.R")   # relocate_after_pattern()
-source("src/03_calibration_rules.R")   # Yes/No, numeric, checkbox sanity
-source("src/04_feature_extraction.R")  # Diagnosis text & brain coding
-source("src/05_qc_data_quality.R")     # Data-entry reality check
+source("R/01_import_merge.R")        # REDCap → wide table
+source("R/02_structure_columns.R")   # relocate_after_pattern()
+source("R/03_calibration_rules.R")   # Yes/No, numeric, checkbox sanity
+source("R/04_feature_extraction.R")  # Diagnosis text & brain coding
+source("R/05_qc_data_quality.R")     # Data-entry reality check
 
 suppressPackageStartupMessages({
   library(dplyr)
@@ -42,7 +42,7 @@ suppressPackageStartupMessages({
 # Repeat instances become *_1, *_2, *_3, ...
 
 df <- import_and_merge_instances(
-  input_path     = "input/Book191125.xlsx",
+  input_path     = "input/BookDummy.xlsx",
   write_xlsx_out = TRUE,
   output_path    = "output/01_wide_instances.xlsx"
 )
@@ -149,12 +149,13 @@ df <- make_diagnosis_text(df)
 # Brain vs spine split (keyword-based, explicit rules)
 brain_spine <- filter_brain_spine(df)
 
-write_xlsx(brain_spine$brain, "output/final_brain_only.xlsx")
-write_xlsx(brain_spine$spine, "output/final_spine_only.xlsx")
+write_xlsx(brain_spine$brain, "output/final_brain_dummy.xlsx")
+write_xlsx(brain_spine$spine, "output/final_spine_dummy.xlsx")
 
 # High-level brain tumor coding
 df <- add_brain_code(df)
 
+view(df)
 
 # -----------------------------
 # 5. QC / Data quality 🧾
@@ -165,11 +166,18 @@ qc <- run_qc_data_quality(
   df,
   id_col = "Record ID",
   range_rules = list(
-    list(var = "Body Mass Index (BMI)_1_corr", min = 10, max = 70),
-    list(var = "Body Temperature_1_num",      min = 34, max = 42)
+    list(var = "Body Mass Index (BMI)_1", min = 10, max = 70),
+    list(var = "Body Mass Index (BMI)_2", min = 10, max = 70),
+    list(var = "Body Mass Index (BMI)_3", min = 10, max = 70),
+    list(var = "Body Mass Index (BMI)_4", min = 10, max = 70),
+    list(var = "Body Temperature_1",      min = 34, max = 42),
+    list(var = "Body Temperature_2",      min = 34, max = 42),
+    list(var = "Body Temperature_3",      min = 34, max = 42),
+    list(var = "Body Temperature_4",      min = 34, max = 42)
   )
 )
 
+dir.create("results/qc", recursive = TRUE, showWarnings = FALSE)
 saveRDS(qc, "results/qc/qc_report.rds")
 write.csv(
   qc$missing$by_col,

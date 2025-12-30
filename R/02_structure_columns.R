@@ -13,25 +13,25 @@
 # -> use relocate_after_pattern()
 # ------------------------------------------------------------
 
+# R/02_structure_columns.R
+
 suppressPackageStartupMessages({
   library(dplyr)
 })
 
 relocate_after_pattern <- function(data, new_cols, pattern) {
-  # new_cols: character vector of column name(s) you want to move
-  # pattern : regex to find the block you want to sit AFTER
-  #
-  # It finds all columns that match `pattern`,
-  # then uses the *last* matched column as the anchor.
-  #
-  # If nothing matches, we do nothing (no drama :')).
-  
+  # 1) anchor block (where to move things after)
   block_cols <- grep(pattern, names(data), value = TRUE)
   if (length(block_cols) == 0) return(data)
   
+  # 2) only relocate columns that actually exist (no drama :'))
+  existing <- intersect(new_cols, names(data))
+  if (length(existing) == 0) return(data)
+  
   anchor <- tail(block_cols, 1)
-  relocate(data, all_of(new_cols), .after = all_of(anchor))
+  dplyr::relocate(data, all_of(existing), .after = all_of(anchor))
 }
+
 
 # ------------------------------------------------------------
 # Usage pattern :

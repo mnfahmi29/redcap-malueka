@@ -11,12 +11,11 @@ data <- read_excel("input/Book191125.xlsx")
 # Remove 'Repeat Instrument' column
 data <- data %>% select(-`Repeat Instrument`)
 
-# Identify static and instance-specific variables
-# Assume 'Name' and 'Sex' are static (do not vary across Instances)
+# Static and instance-specific variables
 static_vars <- c("Record ID", "Patient initial", "Patient name", "Medical record number", "Sex", "Place of Birth", "Birth date")
 instance_vars <- setdiff(names(data), c(static_vars, "Repeat Instance"))
 
-# Merge rows by 'Record ID' and 'Repeat Instance', combining non-NA for instance vars
+# Merge rows by 'Record ID' and 'Repeat Instance'
 merged_instance <- data %>%
   group_by(`Record ID`, `Repeat Instance`) %>%
   summarise(across(all_of(instance_vars), ~ {
@@ -47,10 +46,10 @@ wide_instance <- merged_instance %>%
 combined_data <- static_data %>%
   left_join(wide_instance, by = "Record ID")
 
-# Manually add Instance columns between variable blocks
+# Add Instance columns between variable blocks
 instances <- sort(unique(merged_instance$Instance))
 
-# Function to interleave Instance columns with variable blocks
+# Interleave Instance columns with variable blocks
 build_final <- function(df, instances, instance_vars) {
   final_list <- vector("list", nrow(df))
   
@@ -111,7 +110,7 @@ checkbox_to01 <- function(x) dplyr::case_when(
   TRUE             ~ 0L 
 )
 
-# Yes/No -> Yes/No (Assume NA  as No)
+# Yes/No -> Yes/No
 yn_na_to_no <- function(x) dplyr::case_when(
   x %in% c("Checked", "Yes","Y") ~ "Yes",
   x %in% c("Unchecked", "No","N") ~ "No",
@@ -326,7 +325,7 @@ contraceptive_type_cols <- grep(
   value = TRUE
 )
 
-# (Optional but recommended) convert Checked/Unchecked/NA -> 1/0
+# convert Checked/Unchecked/NA -> 1/0
 df <- df %>%
   mutate(
     across(all_of(contraceptive_type_cols), checkbox_to01)
@@ -347,7 +346,7 @@ for (inst in instances) {
   # name of the new combined column
   new_col <- paste0("Type(s) of contraceptive(s)_", inst)
   
-  # optional: corresponding "Other Contraceptive_inst" free text
+  # corresponding "Other Contraceptive_inst" free text
   other_col <- paste0("Other Contraceptive_", inst)
   has_other <- other_col %in% names(df)
   
@@ -375,7 +374,7 @@ for (inst in instances) {
   })
 }
 
-# 5d. (Optional) Overall Yes/No flag per instance
+# 5d. Overall Yes/No flag per instance
 for (inst in instances) {
   combined_col <- paste0("Type(s) of contraceptive(s)_", inst)
   yes_col      <- paste0("Contraceptive_yes_", inst)
@@ -466,7 +465,7 @@ cn_left_cols    <- grep("^CN [IVX]+ Right/Left \\(choice=Left\\)_[0-9]+$",    na
 cn_unknown_cols <- grep("^CN [IVX]+ Right/Left \\(choice=Unknown\\)_[0-9]+$", names(df), value = TRUE)
 pap_cols        <- grep("^Papilledema_", names(df), value = TRUE)
 
-# make sure CN side checkboxes are 0/1
+
 df <- df %>%
   mutate(
     across(all_of(cn_right_cols),   checkbox_to01),
@@ -474,7 +473,7 @@ df <- df %>%
     across(all_of(cn_unknown_cols), checkbox_to01)
   )
 
-# helper to build deficits + main CN for ONE nerve (CN I, CN II, ...)
+# to build deficits + main CN for ONE nerve (CN I, CN II, ...)
 make_cn_deficit <- function(df, nerve_label) {
   # e.g. nerve_label = "CN I"
   main_cols <- grep(paste0("^", nerve_label, "_[0-9]+$"), names(df), value = TRUE)
