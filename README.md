@@ -112,11 +112,11 @@ This repo is informed by (not a substitute for):
 4. **21 CFR Part 11** (data integrity & traceability)
 ---
 ## 🧑‍💻 Who this repo is for
-Clinical Data Managers
-Biostatisticians
-Clinical researchers using REDCap
-Anyone who has ever thought:
-| “Why is BMI = 234…?”
+Clinical Data Managers  
+Biostatisticians  
+Clinical researchers using REDCap  
+Anyone who has ever thought:  
+> “Why is BMI = 234…?”  
 
 ---
 ## ✨ Final note
