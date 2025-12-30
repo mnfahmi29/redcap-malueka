@@ -28,7 +28,8 @@ This repo shows how I:
 ---
 
 ## 📂 Repository Structure
-
+```
+redcap-malueka
 ├── R/
 │ ├── 01_import_merge.R # REDCap → wide table (repeat instances)
 │ ├── 02_structure_columns.R # Column layout helpers (readability matters!)
@@ -49,7 +50,7 @@ This repo shows how I:
 │
 └── results/
 └── qc/ # QC reports
-
+```
 ---
 
 ## 🧪 About the dummy data
