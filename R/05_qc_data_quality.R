@@ -7,14 +7,23 @@
 # into a *quality report* you can show in GitHub / dashboard.
 #
 # This script helps you answer:
-# - Are there lots of missing values? (overall + per variable + per instance)
-# - Are there suspicious patterns? (too many identical answers, impossible ranges)
-# - Are there duplicates / weird ID issues?
-# - Which fields are the biggest pain points for data entry?
+# (A) Is the dataset itself healthy?
+#     - Are there lots of missing values? (overall + per variable + per instance)
+#     - Are there suspicious patterns? (too many identical answers, impossible ranges)
+#     - Are there duplicates / weird ID issues?
+#     - Which fields are the biggest pain points for data entry?
+#
+# (B) How good was the data entry work?
+#     - who entered it (Resident’s initial)
+#     - how complete was each instance
+#     - how many errors were made
+#     - how much the pipeline had to "fix" things
 #
 # Design principle:
 # QC should be *transparent* and *cheap to run*.
-# No black magic. Just rules + summaries + simple flags ._.
+# ❌ No black magic
+# ❌ No ML buzzwords
+# ✅ Just rules, counts, and uncomfortable truths  :")
 # ------------------------------------------------------------
 
 suppressPackageStartupMessages({
@@ -35,6 +44,10 @@ is_blankish <- function(x) {
   x_chr <- tolower(trimws(as.character(x)))
   is.na(x_chr) | x_chr %in% c("", "na", "n/a", "null")
 }
+
+# ============================================================
+# PART A — Dataset-level QC
+# ============================================================
 
 # ------------------------------------------------------------
 # 1) Missingness profile (overall + per column) :))
@@ -277,3 +290,97 @@ run_qc_data_quality <- function(
 # saveRDS(qc, file = "results/qc/qc_report.rds")
 # write.csv(qc$missing$by_col, "results/qc/missing_by_col.csv", row.names = FALSE)
 # ------------------------------------------------------------
+
+# ============================================================
+# PART B — Data Capturer (Resident) Job Quality 🧑‍⚕️📊
+# ============================================================
+
+# ------------------------------------------------------------
+# Build instance-level QC table
+# ONE ROW = ONE (record × instance × resident)
+# ------------------------------------------------------------
+build_instance_quality <- function(
+    df_wide,
+    id_col = "Record ID",
+    capturer_prefix = "Resident's initial_",
+    instances = 1:4,
+    expected_prefixes = c(
+      "Body Temperature_",
+      "Body Mass Index (BMI)_",
+      "Smoking currently_",
+      "Diagnosis_"
+    ),
+    range_rules = list(),
+    df_wide_before_calibration = NULL
+) {
+  
+  expected_cols_for_inst <- function(inst) {
+    pref <- stringr::str_replace_all(expected_prefixes, "\\(", "\\\\(")
+    pref <- stringr::str_replace_all(pref, "\\)", "\\\\)")
+    pat <- paste0("^(", paste(pref, collapse="|"), ")", inst, "$")
+    grep(pat, names(df_wide), value = TRUE)
+  }
+  
+  map_dfr(instances, function(inst) {
+    
+    cap_col <- paste0(capturer_prefix, inst)
+    capturer <- if (cap_col %in% names(df_wide)) df_wide[[cap_col]] else NA
+    capturer <- ifelse(is_blankish(capturer), "UNKNOWN", as.character(capturer))
+    
+    expected_cols <- expected_cols_for_inst(inst)
+    
+    completeness <- if (length(expected_cols) == 0) {
+      NA_real_
+    } else {
+      rowMeans(!sapply(df_wide[expected_cols],
+                       function(x) is.na(x) | is_blankish(x)))
+    }
+    
+    err_count <- rep(0L, nrow(df_wide))
+    rr_inst <- range_rules[map_lgl(range_rules,
+                                   ~ endsWith(.x$var, paste0("_", inst)))]
+    for (r in rr_inst) {
+      v <- suppressWarnings(as.numeric(df_wide[[r$var]]))
+      err_count <- err_count + as.integer(!is.na(v) & (v < r$min | v > r$max))
+    }
+    
+    corr_burden <- NA_integer_
+    if (!is.null(df_wide_before_calibration) && length(expected_cols) > 0) {
+      corr_burden <- rep(0L, nrow(df_wide))
+      for (cc in expected_cols) {
+        a <- df_wide_before_calibration[[cc]]
+        b <- df_wide[[cc]]
+        corr_burden <- corr_burden +
+          as.integer(!(is.na(a) & is.na(b)) & as.character(a) != as.character(b))
+      }
+    }
+    
+    tibble(
+      !!id_col := df_wide[[id_col]],
+      instance = inst,
+      capturer_id = capturer,
+      completeness = completeness,
+      error_count = err_count,
+      correction_burden = corr_burden
+    )
+  })
+}
+
+# ------------------------------------------------------------
+# Aggregate per resident (this is the report card)
+# ------------------------------------------------------------
+score_capturers <- function(instance_qc) {
+  
+  instance_qc %>%
+    group_by(capturer_id) %>%
+    summarise(
+      n_instances = n(),
+      mean_completeness = mean(completeness, na.rm = TRUE),
+      mean_error_count = mean(error_count, na.rm = TRUE),
+      total_error_count = sum(error_count, na.rm = TRUE),
+      mean_correction_burden = mean(correction_burden, na.rm = TRUE),
+      total_correction_burden = sum(correction_burden, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    arrange(desc(mean_error_count), mean_completeness)
+}

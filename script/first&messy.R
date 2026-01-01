@@ -6,7 +6,7 @@ library(stringr)
 library(rlang)
 
 # Load the Excel file
-data <- read_excel("input/Book191125.xlsx")
+data <- read_excel("input/Book311225.xlsx")
 
 # Remove 'Repeat Instrument' column
 data <- data %>% select(-`Repeat Instrument`)
@@ -84,7 +84,7 @@ build_final <- function(df, instances, instance_vars) {
 final_data <- build_final(combined_data, instances, instance_vars)
 df <- final_data
 
-write_xlsx(final_data, "final19nov25.xlsx")
+write_xlsx(final_data, "final31dec25.xlsx")
 
 ###############################################################
 
@@ -1203,7 +1203,7 @@ for (inst in instances_med) {
 
 
 # Save 
-write_xlsx(df, "final19nov25_calib_new.xlsx")
+write_xlsx(df, "final31dec25_calib_new.xlsx")
 
 
 ################################ BRAIN / SPINE
@@ -1270,8 +1270,8 @@ df_brain <- df %>%
 df_spine <- df %>%
   filter(!is.na(Diagnosis_text) & str_detect(Diagnosis_text, spine_pattern))
 
-writexl::write_xlsx(df_brain, "final19nov25_brain_only.xlsx")
-writexl::write_xlsx(df_spine, "final19nov25_spine_only.xlsx")
+writexl::write_xlsx(df_brain, "final31dec25_brain_only.xlsx")
+writexl::write_xlsx(df_spine, "final31dec25_spine_only.xlsx")
 
 
 
@@ -1350,7 +1350,7 @@ save_brain_code <- function(code_label, filename) {
 }
 
 # Examples:
-save_brain_code("Glioma", "final19nov25_glioma_only.xlsx")
-save_brain_code("Meningioma", "final19nov25_meningioma_only.xlsx")
-save_brain_code("Unknown", "final19nov25_brain_unknown.xlsx")
+save_brain_code("Glioma", "final31dec25_glioma_only.xlsx")
+save_brain_code("Meningioma", "final31dec25_meningioma_only.xlsx")
+save_brain_code("Unknown", "final31dec25_brain_unknown.xlsx")
 

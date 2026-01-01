@@ -69,6 +69,7 @@ rules <- list(
   list(type = "numeric", pattern = "^Body Surface Area \\(BSA\\)_\\d+$")
 )
 
+df_raw_wide <- df  # snapshot before calibration
 df <- apply_calibration_rules(df, rules)
 
 # 🧠 Mental model:
@@ -161,29 +162,35 @@ view(df)
 # 5. QC / Data quality 🧾
 # -----------------------------
 # Time to judge the data capturer (kindly, but firmly).
+range_rules <- list(
+  # use raw names if you don't generate *_corr yet
+  list(var = "Body Mass Index (BMI)_1", min = 10, max = 70),
+  list(var = "Body Mass Index (BMI)_2", min = 10, max = 70),
+  list(var = "Body Mass Index (BMI)_3", min = 10, max = 70),
+  list(var = "Body Mass Index (BMI)_4", min = 10, max = 70),
+  list(var = "Body Temperature_1",      min = 34, max = 42),
+  list(var = "Body Temperature_2",      min = 34, max = 42),
+  list(var = "Body Temperature_3",      min = 34, max = 42),
+  list(var = "Body Temperature_4",      min = 34, max = 42)
+)
 
-qc <- run_qc_data_quality(
-  df,
+instance_qc <- build_instance_quality(
+  df_wide = df,
   id_col = "Record ID",
-  range_rules = list(
-    list(var = "Body Mass Index (BMI)_1", min = 10, max = 70),
-    list(var = "Body Mass Index (BMI)_2", min = 10, max = 70),
-    list(var = "Body Mass Index (BMI)_3", min = 10, max = 70),
-    list(var = "Body Mass Index (BMI)_4", min = 10, max = 70),
-    list(var = "Body Temperature_1",      min = 34, max = 42),
-    list(var = "Body Temperature_2",      min = 34, max = 42),
-    list(var = "Body Temperature_3",      min = 34, max = 42),
-    list(var = "Body Temperature_4",      min = 34, max = 42)
-  )
+  capturer_prefix = "Resident's initial_",
+  instances = 1:4,
+  expected_prefixes = c("Body Temperature_", "Body Mass Index (BMI)_", "Smoking currently_", "Diagnosis_"),
+  range_rules = range_rules,
+  df_wide_before_calibration = df_raw_wide   # optional, enables correction_burden
 )
 
+resident_scores <- score_capturers(instance_qc)
+
+# save outputs
 dir.create("results/qc", recursive = TRUE, showWarnings = FALSE)
-saveRDS(qc, "results/qc/qc_report.rds")
-write.csv(
-  qc$missing$by_col,
-  "results/qc/missing_by_column.csv",
-  row.names = FALSE
-)
+
+write.csv(instance_qc, "results/qc/instance_level_qc.csv", row.names = FALSE)
+write.csv(resident_scores, "results/qc/resident_scores.csv", row.names = FALSE)
 
 ############################################################
 # 🎉 End of pipeline

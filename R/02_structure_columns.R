@@ -15,21 +15,19 @@
 
 # R/02_structure_columns.R
 
-suppressPackageStartupMessages({
-  library(dplyr)
-})
+suppressPackageStartupMessages({ library(dplyr) })
 
 relocate_after_pattern <- function(data, new_cols, pattern) {
-  # 1) anchor block (where to move things after)
+  # 1) if the new cols don't exist yet → skip (prevents your error)
+  new_cols <- intersect(new_cols, names(data))
+  if (length(new_cols) == 0) return(data)
+  
+  # 2) find the block anchor
   block_cols <- grep(pattern, names(data), value = TRUE)
   if (length(block_cols) == 0) return(data)
   
-  # 2) only relocate columns that actually exist (no drama :'))
-  existing <- intersect(new_cols, names(data))
-  if (length(existing) == 0) return(data)
-  
   anchor <- tail(block_cols, 1)
-  dplyr::relocate(data, all_of(existing), .after = all_of(anchor))
+  relocate(data, all_of(new_cols), .after = all_of(anchor))
 }
 
 
