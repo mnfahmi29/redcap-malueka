@@ -129,3 +129,27 @@ And honestly — that’s the point.
 
 If you have questions, suggestions, or want to discuss design decisions,
 I’m always happy to talk data 🙂
+
+---
+
+## 🔗 Related Repositories
+
+1. [**REDCap Clinical Data Pipeline (R)**](https://github.com/mnfahmi29/redcap-malueka)
+2. [**Clinical Exploratory Analysis Pipeline**](https://github.com/mnfahmi29/exploratory-analysis)
+3. [**Biostatistics for EHR**](https://github.com/mnfahmi29/biostat-crf)
+
+---
+
+## 📄 License & Citation
+
+This project is provided for research and educational purposes.
+If you reuse or adapt this workflow, please cite appropriately.
+
+---
+
+## 👤 Author
+
+**Muhammad Nur Fahmi, MD**
+
+---
+
